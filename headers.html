@@ -105,9 +105,6 @@ some headers are only allowed once like <code>Host</code>, <code>Content-Length<
 <h2><a id="porcelain-api" href="#porcelain-api" class="Permalink" aria-hidden="true" title="Permalink">#</a>Porcelain API</h2>
 <p>When using the porcelain API like <code>iv_get</code> or <code>iv_post</code> you can add additional headers by passing
 a list of headers as a parameter to to procedure call.</p>
-<p>The list can be created with <code>iv_buildList</code>. You can create an empty list or fill the list with
-initial values. The list is not immutable. You can add values to the list by calling
-<code>iv_addHeaderToList</code>.</p>
 <pre><code>dcl-s headers pointer;
 
 headers = iv_buildList(
@@ -120,6 +117,80 @@ string = iv_get('http://localhost' : IV_MEDIA_TYPE_JSON : headers);
 <p>The headers list is built dynamically and as such allocates memory dynamically. This memory must
 be freed manually by calling <code>iv_freeList</code>.</p>
 <pre><code>iv_freeList(headers);
+</code></pre>
+<h2><a id="low-level-api" href="#low-level-api" class="Permalink" aria-hidden="true" title="Permalink">#</a>Low Level API</h2>
+<p>The low level API supports setting HTTP headers global for that HTTP client instance. Those
+HTTP headers will be added to each HTTP request made with this client instance, see
+<code>iv_addHeader</code> and <code>iv_addHeaders</code>.</p>
+<pre><code>dcl-proc main;
+    dcl-s httpClient pointer;
+    dcl-s buffer varchar(65000:4) ccsid(1208);
+    dcl-s headers pointer;
+    
+    headers = iv_buildList(
+        'accept-language' : 'dk,de;q=0.5' :
+        'authentication'  : 'Bearer my_token'
+    );
+    
+    httpClient = iv_newHttpClient();
+    iv_addHeaders(httpClient : headers);
+    iv_setResponseDataBuffer(httpClient : %addr(buffer) : %size(buffer) : IV_VARCHAR4 : IV_CCSID_UTF8);
+
+    iv_execute(httpClient : 'GET' : 'http://localhost');
+    if (iv_getStatus(httpClient) = IV_HTTP_OK);
+        // everything ok
+    else;
+        // not ok
+    endif;
+
+    on-exit;
+        iv_free(httpClient);
+        iv_freeList(headers);
+end-proc;
+</code></pre>
+<p>Headers can also be passed to the <code>iv_execute</code> procedure call. These headers will be appended
+after the headers previously set on the HTTP client instance.</p>
+<pre><code>dcl-proc main;
+    dcl-s httpClient pointer;
+    dcl-s buffer varchar(65000:4) ccsid(1208);
+    dcl-s headers pointer;
+    
+    headers = iv_buildList(
+        'accept-language' : 'dk,de;q=0.5' :
+        'authentication'  : 'Bearer my_token'
+    );
+    
+    httpClient = iv_newHttpClient();
+    iv_setResponseDataBuffer(httpClient : %addr(buffer) : %size(buffer) : IV_VARCHAR4 : IV_CCSID_UTF8);
+
+    iv_execute(httpClient : 'GET' : 'http://localhost' : headers);
+    if (iv_getStatus(httpClient) = IV_HTTP_OK);
+        // everything ok
+    else;
+        // not ok
+    endif;
+
+    on-exit;
+        iv_free(httpClient);
+        iv_freeList(headers);
+end-proc;
+</code></pre>
+<p>Note: The headers list is built dynamically and as such allocates memory dynamically. This memory
+must be freed manually by calling <code>iv_freeList</code>.</p>
+<h2><a id="dynamic-header-list" href="#dynamic-header-list" class="Permalink" aria-hidden="true" title="Permalink">#</a>Dynamic Header List</h2>
+<p>The list can be created with <code>iv_buildList</code>. You can create an empty list or fill the list with
+initial values. The list is not immutable. You can add values to the list by calling
+<code>iv_addHeaderToList</code>.</p>
+<pre><code>    dcl-s headers pointer;
+    
+    headers = iv_buildList();
+    iv_addHeaderToList(headers : 'accept-language' : 'dk,de;q=0.5');
+    iv_addHeaderToList(headers : 'authentication' : 'Bearer my_token');
+
+    string = iv_get('http://localhost' : IV_MEDIA_TYPE_JSON : headers);
+
+    iv_freeList(headers);
+end-proc;
 </code></pre>
 <h2><a id="request-handler" href="#request-handler" class="Permalink" aria-hidden="true" title="Permalink">#</a>Request Handler</h2>
 <p>You can also hook yourself into the flow of a request and modify the request, f. e. add a header.

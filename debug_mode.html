@@ -100,8 +100,10 @@
 
     <div class="s-content">
         <p>ILEvator supports writing debug messages into the job log. These messages are of type <code>*INFO</code>.
-To active debug messages the environment variable <code>ILEVATOR_DEBUG</code> needs to be set to <code>1</code> which
+To activate debug messages the environment variable <code>ILEVATOR_DEBUG</code> needs to be set to <code>1</code> which
 maps to <code>*ON</code>. By default this is turned off.</p>
+<pre><code>ADDENVVAR ILEVATOR_DEBUG '1'
+</code></pre>
 <p>The environment variable needs to be set before the first call of any procedure from the service
 program <code>ILEVATOR</code> (more precisely before activating the service program). Once set it cannot be
 unset. If you need to set/unset this on a regular basis then you can run it in a named activation
